@@ -117,29 +117,68 @@ export const PASSWORD_ALPHABETS = Object.freeze({
 const AMBIGUOUS = new Set('0Oo1lIi');
 const MAX_PASSWORD_LENGTH = 64;
 const MIN_PASSWORD_LENGTH = 12;
-function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true, excludeAmbiguous = false } = {}) {
+function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true, excludeAmbiguous = false, requireEach = false } = {}) {
   if (!Number.isInteger(length) || length < MIN_PASSWORD_LENGTH || length > MAX_PASSWORD_LENGTH) {
     throw new RangeError('Choose a password length between 12 and 64 characters.');
   }
-  for (const setting of [lower, upper, numbers, special, excludeAmbiguous]) {
+  for (const setting of [lower, upper, numbers, special, excludeAmbiguous, requireEach]) {
     if (typeof setting !== 'boolean') throw new TypeError('Character options must be boolean.');
   }
   const selected = { lower, upper, numbers, special };
-  let alphabet = Object.keys(PASSWORD_ALPHABETS)
+  const groups = Object.keys(PASSWORD_ALPHABETS)
     .filter(key => selected[key])
-    .map(key => PASSWORD_ALPHABETS[key])
-    .join('');
-  // Filtering occurs *before* random sampling: the probability model
-  // uses the actual surviving alphabet, without altering sampling weights.
-  if (excludeAmbiguous) alphabet = [...alphabet].filter(char => !AMBIGUOUS.has(char)).join('');
+    .map(key => ({
+      name: key,
+      characters: [...PASSWORD_ALPHABETS[key]]
+        .filter(char => !excludeAmbiguous || !AMBIGUOUS.has(char)).join(''),
+    }));
+  // Removing ambiguous characters happens before sampling or entropy math.
+  const alphabet = groups.map(group => group.characters).join('');
   if (!alphabet) throw new RangeError('Enable at least one character set.');
-  return { alphabet, length, selected, excludeAmbiguous };
+  if (requireEach && groups.some(group => !group.characters.length)) {
+    throw new RangeError('Each required character group must have eligible characters.');
+  }
+  return { alphabet, length, selected, excludeAmbiguous, requireEach, groups };
 }
 
-/** Mathematical uncertainty for uniform independent character selection. */
+/**
+ * Probability that an independent uniform draw contains every required class.
+ * Inclusion-exclusion is exact mathematically; all powers are ratios <= 1
+ * to avoid overflowing for large password lengths.
+ */
+function coverageProbability(groups, alphabetLength, length) {
+  if (groups.length <= 1) return 1;
+  let probability = 0;
+  for (let mask = 0; mask < (1 << groups.length); mask++) {
+    let excluded = 0, bits = 0;
+    for (let index = 0; index < groups.length; index++) {
+      if (mask & (1 << index)) {
+        excluded += groups[index].characters.length;
+        bits++;
+      }
+    }
+    const term = ((alphabetLength - excluded) / alphabetLength) ** length;
+    probability += bits % 2 === 0 ? term : -term;
+  }
+  if (!(probability > 0 && probability <= 1.0000001)) {
+    throw new RangeError('Unable to calculate category-coverage entropy.');
+  }
+  return Math.min(1, probability);
+}
+
+/**
+ * Exact model entropy for the actual uniformly selected output space:
+ *  - unrestricted: length * log2(alphabet size)
+ *  - all categories required: subtract the probability mass rejected
+ *    by category coverage, using uniform rejection sampling.
+ */
 export function calculatePasswordEntropy(options = {}) {
   const settings = passwordSettings(options);
-  return settings.length * Math.log2(settings.alphabet.length);
+  const bits = settings.length * Math.log2(settings.alphabet.length);
+  return settings.requireEach ?
+    bits + Math.log2(coverageProbability(
+      settings.groups, settings.alphabet.length, settings.length,
+    )) : bits;
 }
 
 /**
@@ -147,17 +186,30 @@ export function calculatePasswordEntropy(options = {}) {
  * The returned secret stays in memory unless the caller explicitly copies it.
  */
 export function createRandomPassword(options = {}) {
-  const { alphabet, length, selected, excludeAmbiguous } = passwordSettings(options);
-  let password = '';
-  for (let index = 0; index < length; index++) {
-    password += alphabet[secureIndex(alphabet.length)];
+  const settings = passwordSettings(options);
+  const { alphabet, length, selected, excludeAmbiguous, requireEach, groups } = settings;
+  const entropy = calculatePasswordEntropy(options);
+  // Each attempted password is an independent uniform draw over the full
+  // alphabet. Rejection therefore leaves a uniform distribution over the
+  // subset containing all selected groups (no biased "forced character"
+  // placement or shuffling).
+  for (let attempt = 0; attempt < 1024; attempt++) {
+    let password = '';
+    for (let index = 0; index < length; index++) {
+      password += alphabet[secureIndex(alphabet.length)];
+    }
+    if (requireEach && groups.some(group =>
+      ![...password].some(character => group.characters.includes(character))
+    )) continue;
+    return {
+      password,
+      bits: entropy,
+      length,
+      alphabetSize: alphabet.length,
+      characterSets: selected,
+      excludeAmbiguous,
+      requireEach,
+    };
   }
-  return {
-    password,
-    bits: length * Math.log2(alphabet.length),
-    length,
-    alphabetSize: alphabet.length,
-    characterSets: selected,
-    excludeAmbiguous,
-  };
+  throw new Error('Unable to meet the selected character requirements securely.');
 }
