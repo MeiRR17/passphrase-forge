@@ -13,6 +13,7 @@ const mode = $('generator-mode');
 const passwordLength = $('password-length');
 let secret = '';
 let concealed = false;
+let secretRevision = 0;
 
 function wordOptions() {
   return {
@@ -30,6 +31,7 @@ function passwordOptions() {
     numbers: $('charset-numbers').checked,
     special: $('charset-special').checked,
     excludeAmbiguous: $('exclude-ambiguous').checked,
+    requireEach: $('require-each').checked,
   };
 }
 function passwordAlphabetSize(options) {
@@ -50,6 +52,7 @@ function showSecret() {
   reveal.textContent = concealed ? 'Reveal secret' : 'Hide secret';
 }
 function clearSecret() {
+  secretRevision++;
   secret = '';
   concealed = false;
   textarea.value = '';
@@ -80,7 +83,10 @@ function explainEntropy() {
       $('entropy-explanation').textContent =
         chars.length + ' independent character choices from an alphabet of ' + alphabetSize +
         ' symbols produce approximately ' + bits.toFixed(1) +
-        ' bits. Enabled character groups are possible, but not guaranteed to appear.' +
+        ' bits. ' +
+        (chars.requireEach ?
+          'Every enabled character group is guaranteed by uniform rejection sampling.' :
+          'Enabled character groups are possible, but not guaranteed to appear.') +
         (chars.excludeAmbiguous ? ' Look-alike characters are excluded before sampling.' : '');
     } else {
       $('entropy-explanation').textContent =
@@ -104,6 +110,7 @@ function generate() {
   try {
     const result = activeMode() === 'password' ?
       createRandomPassword(passwordOptions()) : createPassphrase(wordOptions());
+    secretRevision++;
     secret = activeMode() === 'password' ? result.password : result.phrase;
     concealed = false;
     copy.disabled = reveal.disabled = clear.disabled = false;
@@ -118,7 +125,7 @@ function generate() {
 
 for (const control of [pairs, separator, digit, symbol, mode, passwordLength,
   $('charset-lower'), $('charset-upper'), $('charset-numbers'), $('charset-special'),
-  $('exclude-ambiguous')]) {
+  $('exclude-ambiguous'), $('require-each')]) {
   control.addEventListener('input', () => {
     clearSecret();
     explainEntropy();
@@ -140,14 +147,22 @@ reveal.addEventListener('click', () => {
 copy.addEventListener('click', async () => {
   if (!secret) return;
   if (!navigator.clipboard?.writeText) {
-    status('Clipboard API is unavailable. Reveal and copy the phrase manually.', true);
+    status('Clipboard API is unavailable. Reveal and copy the secret manually.', true);
     return;
   }
+  const copiedRevision = secretRevision;
+  const copiedSecret = secret;
   try {
-    await navigator.clipboard.writeText(secret);
+    await navigator.clipboard.writeText(copiedSecret);
+    if (copiedRevision !== secretRevision) {
+      status('Copy completed for a previous secret. The clipboard may still hold it; replace or clear the clipboard.', true);
+      return;
+    }
     status('Secret copied. Your clipboard may remain accessible to other apps: clear it after saving it.');
   } catch {
-    status('Copy was blocked by your browser. Reveal the secret and copy manually.', true);
+    if (copiedRevision === secretRevision) {
+      status('Copy was blocked by your browser. Reveal the secret and copy manually.', true);
+    }
   }
 });
 
