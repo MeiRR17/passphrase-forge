@@ -29,10 +29,15 @@ function passwordOptions() {
     upper: $('charset-upper').checked,
     numbers: $('charset-numbers').checked,
     special: $('charset-special').checked,
+    excludeAmbiguous: $('exclude-ambiguous').checked,
   };
 }
 function passwordAlphabetSize(options) {
-  return Object.entries(PASSWORD_ALPHABETS).reduce((count,[key,chars])=>count+(options[key]?chars.length:0),0);
+  const included = Object.entries(PASSWORD_ALPHABETS)
+    .filter(([key]) => options[key])
+    .map(([,chars]) => chars).join('');
+  return options.excludeAmbiguous ?
+    [...included].filter(char => !'0Oo1lIi'.includes(char)).length : included.length;
 }
 function activeMode() { return mode.value === 'password' ? 'password' : 'phrase'; }
 function status(message, error = false) {
@@ -75,7 +80,8 @@ function explainEntropy() {
       $('entropy-explanation').textContent =
         chars.length + ' independent character choices from an alphabet of ' + alphabetSize +
         ' symbols produce approximately ' + bits.toFixed(1) +
-        ' bits. Enabled character groups are possible, but not guaranteed to appear.';
+        ' bits. Enabled character groups are possible, but not guaranteed to appear.' +
+        (chars.excludeAmbiguous ? ' Look-alike characters are excluded before sampling.' : '');
     } else {
       $('entropy-explanation').textContent =
         words.pairs + ' independent choices among ' + DICTIONARY.combinationsPerPair.toLocaleString('en-US') +
@@ -111,7 +117,8 @@ function generate() {
 }
 
 for (const control of [pairs, separator, digit, symbol, mode, passwordLength,
-  $('charset-lower'), $('charset-upper'), $('charset-numbers'), $('charset-special')]) {
+  $('charset-lower'), $('charset-upper'), $('charset-numbers'), $('charset-special'),
+  $('exclude-ambiguous')]) {
   control.addEventListener('input', () => {
     clearSecret();
     explainEntropy();
