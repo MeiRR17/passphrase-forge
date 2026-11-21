@@ -58,6 +58,20 @@
             <label class="toggle"><span><strong>Avoid look-alike characters</strong><small>Exclude 0, O, o, 1, l, I and i</small></span><input id="exclude-ambiguous" type="checkbox"></label>
             <label class="toggle"><span><strong>Require every selected group</strong><small>At least one of each enabled letter, number or symbol category</small></span><input id="require-each" type="checkbox"></label>
           </fieldset>
+          <div class="entropy-target-panel">
+            <label for="entropy-target">Plan password length for an entropy target</label>
+            <div class="entropy-target-actions">
+              <select id="entropy-target" aria-describedby="target-recommendation">
+                <option value="64">64 bits</option>
+                <option value="80" selected>80 bits</option>
+                <option value="128">128 bits</option>
+                <option value="192">192 bits</option>
+                <option value="256">256 bits</option>
+              </select>
+              <button id="apply-recommended-length" type="button" class="button subtle">Use suggested length</button>
+            </div>
+            <p id="target-recommendation" aria-live="polite">Choose a target to see the minimum length for the selected character options.</p>
+          </div>
           <p class="settings-hint">Characters are picked uniformly from the enabled alphabet. By default categories are <strong>not guaranteed</strong>; choose the optional requirement above to keep only secure draws containing every enabled category.</p>
         </div>
         <button id="generate" type="button" class="button primary">✳ Generate passphrase</button>
