@@ -42,14 +42,14 @@ function status(message, error = false) {
 }
 function showSecret() {
   textarea.value = concealed && secret ? '•'.repeat(secret.length) : secret;
-  reveal.textContent = concealed ? 'Reveal passphrase' : 'Hide passphrase';
+  reveal.textContent = concealed ? 'Reveal secret' : 'Hide secret';
 }
 function clearSecret() {
   secret = '';
   concealed = false;
   textarea.value = '';
   copy.disabled = reveal.disabled = clear.disabled = true;
-  reveal.textContent = 'Hide passphrase';
+  reveal.textContent = 'Hide secret';
 }
 function explainEntropy() {
   const usingPassword = activeMode() === 'password';
@@ -59,6 +59,7 @@ function explainEntropy() {
   $('word-options').hidden = usingPassword;
   $('password-options').hidden = !usingPassword;
   $('result-heading').textContent = usingPassword ? 'Your new password' : 'Your new passphrase';
+  copy.textContent = usingPassword ? 'Copy password' : 'Copy passphrase';
   $('generate').textContent = usingPassword ? '✳ Generate password' : '✳ Generate passphrase';
   try {
     const words = wordOptions(), chars = passwordOptions();
