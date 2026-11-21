@@ -1,6 +1,6 @@
 # Passphrase Forge
 
-Create memorable random passphrases in a modern browser using **cryptographically secure randomness**. No signup, network service, analytics, storage of generated phrases, or third-party dependencies.
+Create memorable passphrases **or uniform random-character passwords** in a modern browser using **cryptographically secure randomness**. No signup, network service, analytics, storage of generated phrases, or third-party dependencies.
 
 ## Get started
 
@@ -8,7 +8,7 @@ Serve the repository root using a local HTTP server (required for browser ES mod
 
     python3 -m http.server 8000
 
-Visit http://localhost:8000, select the number of word pairs, separator, and optional digit/symbol; then press **Generate passphrase**. The application also works on static HTTPS hosting. Web Crypto must be available (HTTPS or localhost). If secure randomness is unavailable, generation stops rather than falling back to predictable randomness.
+Visit http://localhost:8000, choose **Memorable word pairs** or **Random characters**, configure the options and select Generate. The application also works on static HTTPS hosting. Web Crypto must be available (HTTPS or localhost). If secure randomness is unavailable, generation stops rather than falling back to predictable randomness.
 
 ## How it works
 
@@ -20,13 +20,20 @@ Every list index is selected independently with `crypto.getRandomValues()` and r
 
 Passphrase length and entropy are calculated from actual generator choices; the result is not a claim of immunity to guessing, phishing, malware, breaches, or password-reuse attacks.
 
+### Character-password mode
+
+Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). The generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the ideal random-choice entropy is `L × log2(N)` bits. There is no biased shuffle and no insecure random fallback.
+
+**Important:** Enabling a category makes its characters possible, but does **not guarantee** that every enabled category appears in the result. If a service requires at least one character of every category, visually verify compliance or regenerate. Separators and word-pair options do not affect character-password mode.
+
 ## Features
 
 - 4–12 independent adjective–noun pairs, default 6.
+- Separate random-character password generator (12–64 characters) with selectable character sets and exact entropy based on the resulting alphabet.
 - Hyphen, space, underscore and period separators.
 - Optional uniformly selected digit and symbol.
 - Honest entropy calculation and source-code-readable word lists.
-- Copy button with warning about clipboard persistence.
+- Copy button with warning about clipboard persistence, and an explicit **Clear** action that drops the generated secret from the app's active state. Clearing does not clear OS clipboard managers, browser heap snapshots or saved exports.
 - Conceal/reveal on-screen display; automatically conceals when the tab becomes hidden.
 - No password data written to browser storage, query strings, network endpoints or logs.
 - Responsive browser interface, plain-language explanations, and MIT license.
@@ -35,10 +42,11 @@ Passphrase length and entropy are calculated from actual generator choices; the 
 
 The implementation is a browser ES module:
 
-    import { createPassphrase, calculateEntropy } from './src/generator.js';
+    import { createPassphrase, calculateEntropy, createRandomPassword, calculatePasswordEntropy } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
+    const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
 
-`result.phrase` is the secret and should never be logged or persisted by default. The returned `bits` estimate describes the generator’s random choices.
+`result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 
 ## Security considerations
 
