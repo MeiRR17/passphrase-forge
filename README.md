@@ -24,7 +24,9 @@ Passphrase length and entropy are calculated from actual generator choices; the 
 
 Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). The generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the ideal random-choice entropy is `L × log2(N)` bits. There is no biased shuffle and no insecure random fallback.
 
-**Important:** Enabling a category makes its characters possible, but does **not guarantee** that every enabled category appears in the result.
+**Important:** By default, enabling a category makes its characters possible but does **not guarantee** that every enabled category appears. With the optional Require every selected group setting, each enabled category is guaranteed, with an entropy adjustment.
+
+An optional **Require every selected group** switch rejects otherwise-uniform Web Crypto password candidates until the result includes at least one character from each enabled category. Rejection sampling is uniform over the valid password space; no character is forcibly inserted or shuffled. Entropy is adjusted to the number of valid strings using inclusion-exclusion, so the meter does not overstate the strength of a constrained password. The option is off by default. At most 1,024 candidate passwords are generated per request before an explicit failure; the generator never falls back to a weaker source. Choose `requireEach: true` when calling `createRandomPassword()` or `calculatePasswordEntropy()`.
 
 An optional **Avoid look-alike characters** switch excludes `0`, `O`, `o`, `1`, `l`, `I`, and `i` from the combined alphabet. This is helpful when reading a password aloud or retyping it, but it decreases the alphabet size and therefore its entropy. The displayed entropy is recalculated using the actual filtered alphabet **before** cryptographic selection; the generator remains uniform and bias-free. If a service requires at least one character of every category, visually verify compliance or regenerate. Separators and word-pair options do not affect character-password mode.
 
@@ -69,3 +71,5 @@ The implementation is a browser ES module:
 ## Author
 
 Built by Meir Dvir · https://github.com/MeiRR17
+
+If a clipboard write finishes after the secret is regenerated or cleared, the interface warns that the clipboard may still contain the previous secret. Browser clipboard operations cannot be reliably revoked once issued.
