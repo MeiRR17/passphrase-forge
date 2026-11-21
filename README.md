@@ -24,12 +24,15 @@ Passphrase length and entropy are calculated from actual generator choices; the 
 
 Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). The generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the ideal random-choice entropy is `L × log2(N)` bits. There is no biased shuffle and no insecure random fallback.
 
-**Important:** Enabling a category makes its characters possible, but does **not guarantee** that every enabled category appears in the result. If a service requires at least one character of every category, visually verify compliance or regenerate. Separators and word-pair options do not affect character-password mode.
+**Important:** Enabling a category makes its characters possible, but does **not guarantee** that every enabled category appears in the result.
+
+An optional **Avoid look-alike characters** switch excludes `0`, `O`, `o`, `1`, `l`, `I`, and `i` from the combined alphabet. This is helpful when reading a password aloud or retyping it, but it decreases the alphabet size and therefore its entropy. The displayed entropy is recalculated using the actual filtered alphabet **before** cryptographic selection; the generator remains uniform and bias-free. If a service requires at least one character of every category, visually verify compliance or regenerate. Separators and word-pair options do not affect character-password mode.
 
 ## Features
 
 - 4–12 independent adjective–noun pairs, default 6.
 - Separate random-character password generator (12–64 characters) with selectable character sets and exact entropy based on the resulting alphabet.
+- Optional exclusion of seven visually ambiguous characters; the library takes `excludeAmbiguous: true` in `createRandomPassword()` or `calculatePasswordEntropy()`.
 - Hyphen, space, underscore and period separators.
 - Optional uniformly selected digit and symbol.
 - Honest entropy calculation and source-code-readable word lists.
@@ -45,6 +48,7 @@ The implementation is a browser ES module:
     import { createPassphrase, calculateEntropy, createRandomPassword, calculatePasswordEntropy } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
     const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
+    const readable = createRandomPassword({ length: 24, excludeAmbiguous: true });
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 
