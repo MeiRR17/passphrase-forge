@@ -56,8 +56,9 @@
             <label class="toggle"><span><strong>Numbers</strong><small>0–9 (10 choices)</small></span><input id="charset-numbers" type="checkbox" checked></label>
             <label class="toggle"><span><strong>Symbols</strong><small>!@#$%&amp;*?_-+= (12 choices)</small></span><input id="charset-special" type="checkbox" checked></label>
             <label class="toggle"><span><strong>Avoid look-alike characters</strong><small>Exclude 0, O, o, 1, l, I and i</small></span><input id="exclude-ambiguous" type="checkbox"></label>
+            <label class="toggle"><span><strong>Require every selected group</strong><small>At least one of each enabled letter, number or symbol category</small></span><input id="require-each" type="checkbox"></label>
           </fieldset>
-          <p class="settings-hint">Characters are picked uniformly from the combined enabled alphabet. At least one of every selected type is <strong>not guaranteed</strong>.</p>
+          <p class="settings-hint">Characters are picked uniformly from the enabled alphabet. By default categories are <strong>not guaranteed</strong>; choose the optional requirement above to keep only secure draws containing every enabled category.</p>
         </div>
         <button id="generate" type="button" class="button primary">✳ Generate passphrase</button>
         <p class="settings-hint">Each choice uses <code>crypto.getRandomValues()</code>. There is no insecure fallback.</p>
