@@ -182,6 +182,27 @@ export function calculatePasswordEntropy(options = {}) {
 }
 
 /**
+ * Find the smallest permitted password length meeting a random-choice
+ * entropy target under the exact selected alphabet and coverage constraints.
+ * This is planning math, not proof of protection from online attacks.
+ * Returns null if no permitted length can meet the requested target.
+ */
+export function minimumPasswordLength(options = {}, targetBits = 80) {
+  if (!Number.isFinite(targetBits) || targetBits <= 0 || targetBits > 256) {
+    throw new RangeError('Target entropy must be a number from 0 to 256 bits.');
+  }
+  const requested = { ...options, length: MIN_PASSWORD_LENGTH };
+  // Fail early for an invalid alphabet or contradictory group selections.
+  passwordSettings(requested);
+  for (let length = MIN_PASSWORD_LENGTH; length <= MAX_PASSWORD_LENGTH; length++) {
+    if (calculatePasswordEntropy({ ...options, length }) >= targetBits) {
+      return length;
+    }
+  }
+  return null;
+}
+
+/**
  * Produce a random character password using Web Crypto only.
  * The returned secret stays in memory unless the caller explicitly copies it.
  */
