@@ -114,22 +114,26 @@ export const PASSWORD_ALPHABETS = Object.freeze({
   numbers: '0123456789',
   special: '!@#$%&*?_-+=',
 });
+const AMBIGUOUS = new Set('0Oo1lIi');
 const MAX_PASSWORD_LENGTH = 64;
 const MIN_PASSWORD_LENGTH = 12;
-function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true } = {}) {
+function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true, excludeAmbiguous = false } = {}) {
   if (!Number.isInteger(length) || length < MIN_PASSWORD_LENGTH || length > MAX_PASSWORD_LENGTH) {
     throw new RangeError('Choose a password length between 12 and 64 characters.');
   }
-  for (const setting of [lower, upper, numbers, special]) {
+  for (const setting of [lower, upper, numbers, special, excludeAmbiguous]) {
     if (typeof setting !== 'boolean') throw new TypeError('Character options must be boolean.');
   }
   const selected = { lower, upper, numbers, special };
-  const alphabet = Object.keys(PASSWORD_ALPHABETS)
+  let alphabet = Object.keys(PASSWORD_ALPHABETS)
     .filter(key => selected[key])
     .map(key => PASSWORD_ALPHABETS[key])
     .join('');
+  // Filtering occurs *before* random sampling: the probability model
+  // uses the actual surviving alphabet, without altering sampling weights.
+  if (excludeAmbiguous) alphabet = [...alphabet].filter(char => !AMBIGUOUS.has(char)).join('');
   if (!alphabet) throw new RangeError('Enable at least one character set.');
-  return { alphabet, length, selected };
+  return { alphabet, length, selected, excludeAmbiguous };
 }
 
 /** Mathematical uncertainty for uniform independent character selection. */
@@ -143,7 +147,7 @@ export function calculatePasswordEntropy(options = {}) {
  * The returned secret stays in memory unless the caller explicitly copies it.
  */
 export function createRandomPassword(options = {}) {
-  const { alphabet, length, selected } = passwordSettings(options);
+  const { alphabet, length, selected, excludeAmbiguous } = passwordSettings(options);
   let password = '';
   for (let index = 0; index < length; index++) {
     password += alphabet[secureIndex(alphabet.length)];
@@ -154,5 +158,6 @@ export function createRandomPassword(options = {}) {
     length,
     alphabetSize: alphabet.length,
     characterSets: selected,
+    excludeAmbiguous,
   };
 }
