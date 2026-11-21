@@ -22,13 +22,19 @@ Passphrase length and entropy are calculated from actual generator choices; the 
 
 ### Character-password mode
 
-Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). The generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the ideal random-choice entropy is `L × log2(N)` bits. There is no biased shuffle and no insecure random fallback.
+Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). By default, the generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the unconstrained random-choice entropy is `L × log2(N)` bits. If the optional require-every-group rule is enabled, accepted passwords remain uniformly distributed over the qualifying subset and the entropy estimate is adjusted accordingly. There is no biased shuffle or insecure random fallback.
 
 **Important:** By default, enabling a category makes its characters possible but does **not guarantee** that every enabled category appears. With the optional Require every selected group setting, each enabled category is guaranteed, with an entropy adjustment.
 
 An optional **Require every selected group** switch rejects otherwise-uniform Web Crypto password candidates until the result includes at least one character from each enabled category. Rejection sampling is uniform over the valid password space; no character is forcibly inserted or shuffled. Entropy is adjusted to the number of valid strings using inclusion-exclusion, so the meter does not overstate the strength of a constrained password. The option is off by default. At most 1,024 candidate passwords are generated per request before an explicit failure; the generator never falls back to a weaker source. Choose `requireEach: true` when calling `createRandomPassword()` or `calculatePasswordEntropy()`.
 
 An optional **Avoid look-alike characters** switch excludes `0`, `O`, `o`, `1`, `l`, `I`, and `i` from the combined alphabet. This is helpful when reading a password aloud or retyping it, but it decreases the alphabet size and therefore its entropy. The displayed entropy is recalculated using the actual filtered alphabet **before** cryptographic selection; the generator remains uniform and bias-free. If a service requires at least one character of every category, visually verify compliance or regenerate. Separators and word-pair options do not affect character-password mode.
+
+### Password length planner
+
+The random-character mode now includes an **entropy-target planner** (64, 80, 128, 192 or 256 bits). It searches the allowed 12–64 character lengths using `calculatePasswordEntropy()` with the currently selected alphabet, look-alike exclusion and per-group requirement. The result is the **shortest length that meets the chosen mathematical target**, or an explicit unavailable result if the target cannot be met within 64 characters. Selecting **Use suggested length** updates the password-length slider and invalidates an already generated secret; it does **not** silently regenerate or persist a secret.
+
+Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbers: true, special: true, requireEach: true }, 128)`. A numerical entropy target does not guarantee that a password will survive phishing, an online attack, compromised devices or unfavorable account policies.
 
 ## Features
 
@@ -47,10 +53,11 @@ An optional **Avoid look-alike characters** switch excludes `0`, `O`, `o`, `1`, 
 
 The implementation is a browser ES module:
 
-    import { createPassphrase, calculateEntropy, createRandomPassword, calculatePasswordEntropy } from './src/generator.js';
+    import { createPassphrase, calculateEntropy, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
     const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
     const readable = createRandomPassword({ length: 24, excludeAmbiguous: true });
+    const minLength128 = minimumPasswordLength({ lower: true, upper: true, numbers: true, special: true }, 128);
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 
