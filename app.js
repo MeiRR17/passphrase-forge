@@ -1,4 +1,4 @@
-import { createPassphrase, calculateEntropy, DICTIONARY, createRandomPassword, calculatePasswordEntropy, PASSWORD_ALPHABETS } from './src/generator.js';
+import { createPassphrase, calculateEntropy, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
 
 const $ = id => document.getElementById(id);
 const pairs = $('pairs');
@@ -41,6 +41,24 @@ function passwordAlphabetSize(options) {
   return options.excludeAmbiguous ?
     [...included].filter(char => !'0Oo1lIi'.includes(char)).length : included.length;
 }
+function recommendedLength(options = passwordOptions()) {
+  try {
+    const targetBits = Number($('entropy-target').value);
+    const length = minimumPasswordLength(options, targetBits);
+    $('target-recommendation').textContent = length === null ?
+      'This alphabet cannot reach ' + targetBits + ' bits within the 64-character limit.' :
+      'Minimum calculated length: ' + length + ' characters for at least ' + targetBits +
+      ' bits of ideal random-choice entropy. This is not an account-security guarantee.';
+    $('apply-recommended-length').disabled = length === null ||
+      length === Number(passwordLength.value);
+    return length;
+  } catch (error) {
+    $('target-recommendation').textContent = error.message;
+    $('apply-recommended-length').disabled = true;
+    return null;
+  }
+}
+
 function activeMode() { return mode.value === 'password' ? 'password' : 'phrase'; }
 function status(message, error = false) {
   const el = $('status');
@@ -79,6 +97,7 @@ function explainEntropy() {
     $('entropy-meter').setAttribute('aria-valuemax', String(Math.max(144, Math.ceil(bits))));
     $('entropy-meter').setAttribute('aria-valuenow', String(Math.round(bits)));
     if (usingPassword) {
+      recommendedLength(chars);
       const alphabetSize = passwordAlphabetSize(chars);
       $('entropy-explanation').textContent =
         chars.length + ' independent character choices from an alphabet of ' + alphabetSize +
@@ -103,6 +122,7 @@ function explainEntropy() {
     $('meter-fill').style.width = '0';
     $('entropy-meter').setAttribute('aria-valuenow','0');
     $('entropy-explanation').textContent = error.message;
+    if (usingPassword) recommendedLength(passwordOptions());
     return false;
   }
 }
@@ -132,6 +152,19 @@ for (const control of [pairs, separator, digit, symbol, mode, passwordLength,
     status('Settings changed. Generate a new passphrase to apply them.');
   });
 }
+$('entropy-target').addEventListener('change', () => {
+  // The target is only planning guidance; it does not regenerate or clear a secret.
+  if (activeMode() === 'password') recommendedLength();
+});
+$('apply-recommended-length').addEventListener('click', () => {
+  if (activeMode() !== 'password') return;
+  const length = recommendedLength();
+  if (length === null) return;
+  passwordLength.value = String(length);
+  // Reuse the existing settings path, which invalidates the previous secret
+  // before the next password is generated.
+  passwordLength.dispatchEvent(new Event('input', { bubbles: true }));
+});
 $('generate').addEventListener('click', generate);
 $('regenerate').addEventListener('click', generate);
 clear.addEventListener('click', () => {
