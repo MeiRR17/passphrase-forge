@@ -102,3 +102,57 @@ export function createPassphrase(options = {}) {
     choicesPerPair: DICTIONARY.combinationsPerPair,
   };
 }
+
+/**
+ * Unambiguous character-set selections for random character passwords.
+ * Passwords are drawn uniformly from the combined set; they do not
+ * guarantee one character from each enabled class.
+ */
+export const PASSWORD_ALPHABETS = Object.freeze({
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  numbers: '0123456789',
+  special: '!@#$%&*?_-+=',
+});
+const MAX_PASSWORD_LENGTH = 64;
+const MIN_PASSWORD_LENGTH = 12;
+function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true } = {}) {
+  if (!Number.isInteger(length) || length < MIN_PASSWORD_LENGTH || length > MAX_PASSWORD_LENGTH) {
+    throw new RangeError('Choose a password length between 12 and 64 characters.');
+  }
+  for (const setting of [lower, upper, numbers, special]) {
+    if (typeof setting !== 'boolean') throw new TypeError('Character options must be boolean.');
+  }
+  const selected = { lower, upper, numbers, special };
+  const alphabet = Object.keys(PASSWORD_ALPHABETS)
+    .filter(key => selected[key])
+    .map(key => PASSWORD_ALPHABETS[key])
+    .join('');
+  if (!alphabet) throw new RangeError('Enable at least one character set.');
+  return { alphabet, length, selected };
+}
+
+/** Mathematical uncertainty for uniform independent character selection. */
+export function calculatePasswordEntropy(options = {}) {
+  const settings = passwordSettings(options);
+  return settings.length * Math.log2(settings.alphabet.length);
+}
+
+/**
+ * Produce a random character password using Web Crypto only.
+ * The returned secret stays in memory unless the caller explicitly copies it.
+ */
+export function createRandomPassword(options = {}) {
+  const { alphabet, length, selected } = passwordSettings(options);
+  let password = '';
+  for (let index = 0; index < length; index++) {
+    password += alphabet[secureIndex(alphabet.length)];
+  }
+  return {
+    password,
+    bits: length * Math.log2(alphabet.length),
+    length,
+    alphabetSize: alphabet.length,
+    characterSets: selected,
+  };
+}
