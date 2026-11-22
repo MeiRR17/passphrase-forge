@@ -14,6 +14,32 @@ const passwordLength = $('password-length');
 let secret = '';
 let concealed = false;
 let secretRevision = 0;
+const VISIBLE_SECRET_MS = 30_000;
+let concealTimer = null;
+
+function cancelConcealTimer() {
+  if (concealTimer !== null) clearTimeout(concealTimer);
+  concealTimer = null;
+}
+function scheduleConceal() {
+  cancelConcealTimer();
+  if (!secret || concealed) return;
+  const revision = secretRevision;
+  concealTimer = setTimeout(() => {
+    concealTimer = null;
+    if (!secret || concealed || revision !== secretRevision) return;
+    concealed = true;
+    showSecret();
+    status('Secret hidden after 30 seconds. Reveal it again if you still need to save it.');
+  }, VISIBLE_SECRET_MS);
+}
+function concealOnBlur() {
+  if (!secret || concealed) return;
+  cancelConcealTimer();
+  concealed = true;
+  showSecret();
+  status('Secret hidden because the page lost focus. Reveal it again when needed.');
+}
 
 function wordOptions() {
   return {
@@ -88,6 +114,7 @@ function showSecret() {
   reveal.textContent = concealed ? 'Reveal secret' : 'Hide secret';
 }
 function clearSecret() {
+  cancelConcealTimer();
   secretRevision++;
   secret = '';
   concealed = false;
@@ -155,8 +182,9 @@ function generate() {
     concealed = false;
     copy.disabled = reveal.disabled = clear.disabled = false;
     showSecret();
+    scheduleConceal();
     explainEntropy();
-    status('New secret generated locally. Store it somewhere secure.');
+    status('New secret generated locally. Its visible display will be hidden after 30 seconds.');
   } catch (error) {
     clearSecret();
     status(error.message || 'Secure generation failed.', true);
@@ -206,7 +234,9 @@ reveal.addEventListener('click', () => {
   if (!secret) return;
   concealed = !concealed;
   showSecret();
-  status(concealed ? 'Passphrase concealed on screen.' : 'Passphrase visible on screen.');
+  if (concealed) cancelConcealTimer();
+  else scheduleConceal();
+  status(concealed ? 'Secret hidden on screen.' : 'Secret revealed. It will be hidden after 30 seconds.');
 });
 copy.addEventListener('click', async () => {
   if (!secret) return;
@@ -231,11 +261,9 @@ copy.addEventListener('click', async () => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && secret) {
-    concealed = true;
-    showSecret();
-  }
+  if (document.hidden) concealOnBlur();
 });
+window.addEventListener('blur', concealOnBlur);
 
 // Do not write generated secrets to localStorage, sessionStorage, URLs or logs.
 clearSecret();

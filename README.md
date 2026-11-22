@@ -51,7 +51,7 @@ Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbe
 - Optional uniformly selected digit and symbol.
 - Honest entropy calculation and source-code-readable word lists.
 - Copy button with warning about clipboard persistence, and an explicit **Clear** action that drops the generated secret from the app's active state. Clearing does not clear OS clipboard managers, browser heap snapshots or saved exports.
-- Conceal/reveal on-screen display; automatically conceals when the tab becomes hidden.
+- Conceal/reveal on-screen display; the visible secret automatically hides after 30 seconds, when the tab becomes hidden, or when the browser window loses focus. Revealing it starts a fresh 30-second display period. Concealment does not delete the secret from memory or clear the clipboard; use **Clear** to remove it from the app's active state.
 - No password data written to browser storage, query strings, network endpoints or logs.
 - Responsive browser interface, plain-language explanations, and MIT license.
 
@@ -73,6 +73,7 @@ The implementation is a browser ES module:
 - Generate passphrases only on a trusted device in a trusted browser.
 - Never reuse passphrases between accounts. Consider a reputable password manager for storage.
 - Clipboard managers and installed applications may retain copied secrets; clear the clipboard when appropriate.
+- Auto-conceal reduces accidental on-screen exposure, but does not make the underlying JavaScript memory secret or protect the device from a malicious extension.
 - Website compromise or a malicious browser extension could access the displayed passphrase. Local-only operation is not protection against compromised devices.
 - The code is not independently security-audited. **Automated tests have not yet been run**; the owner plans centralized testing before treating it as production-ready.
 
