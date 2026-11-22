@@ -26,6 +26,14 @@ Before generating a word-pair passphrase, the interface now displays the minimum
 
 API: `passphraseLengthBounds({ pairs: 6, separator: '-', digit: false, symbol: true })` returns `{ minimum, maximum, pairCount }` without touching the browser clipboard or storage.
 
+### Account maximum-length compatibility planner
+
+If an account service imposes a maximum secret length, choose **External account maximum length** (32, 48, 64, 96, 128 or 256 characters) in word-pair mode. The app compares the selected word-pair configuration's shortest and longest possible outputs against that limit: **guaranteed** (all outputs fit), **variable** (some may exceed the limit), or **impossible** (none fit). This calculation is deterministic, does not draw randomness, and never sends the limit to a network service. It does **not** enforce the limit during generation, check password acceptance at a remote service, or alter existing generated secrets.
+
+When a limit is selected, **Use suggested pairs** now recommends the smallest 4–12 pair count meeting both the chosen entropy target and a *guaranteed* maximum length. If no pair count can satisfy both, it explicitly reports no available recommendation rather than suggesting a shorter, weaker phrase. The underlying independent selections and entropy calculation do not change. Other account restrictions (minimum length, spaces, character classes, Unicode support) must still be reviewed separately.
+
+Pure API: `passphraseLengthFit({ pairs: 6, separator: '-' }, 64)` returns bounds and `fit: 'guaranteed' | 'variable' | 'impossible'`; `minimumPassphrasePairsWithinLimit({ separator: '-', digit: false, symbol: false }, 80, 64)` returns the minimum compatible pair count or `null`. No secret generation is involved.
+
 ### Word-pair entropy planner
 
 Memorable-word mode also offers an **entropy-target planner** with targets of 64, 80, 96, 128 and 160 bits. It finds the smallest permitted number of independent adjective–noun pairs (4–12) needed for the chosen target, counting any enabled random digit or symbol. For example, 80 bits without extra characters requires 7 word pairs; the 160-bit option cannot be met within the 12-pair limit and reports that explicitly. The planner never creates a secret.
@@ -65,13 +73,15 @@ Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbe
 
 The implementation is a browser ES module:
 
-    import { createPassphrase, calculateEntropy, minimumPassphrasePairs, passphraseLengthBounds, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
+    import { createPassphrase, calculateEntropy, minimumPassphrasePairs, minimumPassphrasePairsWithinLimit, passphraseLengthFit, passphraseLengthBounds, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
     const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
     const readable = createRandomPassword({ length: 24, excludeAmbiguous: true });
     const minLength128 = minimumPasswordLength({ lower: true, upper: true, numbers: true, special: true }, 128);
     const minPairs80 = minimumPassphrasePairs({ digit: false, symbol: false }, 80);
     const wordPairLengths = passphraseLengthBounds({ pairs: 6, separator: '-' });
+    const accountFit = passphraseLengthFit({ pairs: 6, separator: '-' }, 64);
+    const guaranteedPairs = minimumPassphrasePairsWithinLimit({ separator: '-' }, 80, 64);
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 

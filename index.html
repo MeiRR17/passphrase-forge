@@ -34,6 +34,17 @@
         <input type="range" id="pairs" min="4" max="12" step="1" value="6">
         <div class="range-labels"><span>4 · shorter</span><span>12 · stronger</span></div>
         <p id="phrase-length-estimate" class="settings-hint" aria-live="polite">Possible passphrase character length will appear here.</p>
+        <label class="field" for="phrase-maximum">External account maximum length (planning only)
+          <select id="phrase-maximum" aria-describedby="phrase-length-estimate pair-recommendation">
+            <option value="0" selected>No stated maximum</option>
+            <option value="32">32 characters</option>
+            <option value="48">48 characters</option>
+            <option value="64">64 characters</option>
+            <option value="96">96 characters</option>
+            <option value="128">128 characters</option>
+            <option value="256">256 characters</option>
+          </select>
+        </label>
         <label class="field" for="separator">Separator between pairs
           <select id="separator">
             <option value="-">Hyphen (-)</option>

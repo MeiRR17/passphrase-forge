@@ -121,6 +121,46 @@ export function passphraseLengthBounds({
 }
 
 /**
+ * Check worst/best-case compatibility with an external character limit.
+ * This is a policy planner, not a generator. A "variable" result means
+ * some possible random phrases fit and others do not; it must not be
+ * represented as guaranteed compatibility.
+ */
+export function passphraseLengthFit(options = {}, maxCharacters = 64) {
+  if (!Number.isSafeInteger(maxCharacters) || maxCharacters < 1 ||
+      maxCharacters > 1024) {
+    throw new RangeError('Account maximum must be 1–1,024 characters.');
+  }
+  const { minimum, maximum } = passphraseLengthBounds(options);
+  return {
+    minimum, maximum, maxCharacters,
+    fit: maximum <= maxCharacters ? 'guaranteed' :
+      minimum > maxCharacters ? 'impossible' : 'variable',
+  };
+}
+
+/**
+ * Find the smallest permitted pair count satisfying the entropy target AND
+ * guaranteeing that even the longest possible randomly chosen phrase fits.
+ * Returns null when no safe recommendation can satisfy both requirements.
+ * No random data is drawn, generated, stored or transmitted.
+ */
+export function minimumPassphrasePairsWithinLimit(
+  { separator = '-', digit = false, symbol = false } = {},
+  targetBits = 80,
+  maxCharacters = 64,
+) {
+  const minimum = minimumPassphrasePairs({ digit, symbol }, targetBits);
+  if (minimum === null) return null;
+  const fit = passphraseLengthFit(
+    { pairs: minimum, separator, digit, symbol }, maxCharacters,
+  );
+  // More pairs can only increase output length, so no later pair count
+  // could meet the same length cap if this minimal-entropy count fails.
+  return fit.fit === 'guaranteed' ? minimum : null;
+}
+
+/**
  * Generate an unpredictable passphrase from uniform independent choices.
  * The returned string is never persisted or transmitted by this library.
  * @param {{pairs?:number, separator?:string, digit?:boolean, symbol?:boolean}} options

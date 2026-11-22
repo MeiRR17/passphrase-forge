@@ -1,4 +1,4 @@
-import { createPassphrase, calculateEntropy, minimumPassphrasePairs, passphraseLengthBounds, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
+import { createPassphrase, calculateEntropy, minimumPassphrasePairs, minimumPassphrasePairsWithinLimit, passphraseLengthFit, passphraseLengthBounds, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
 
 const $ = id => document.getElementById(id);
 const pairs = $('pairs');
@@ -70,11 +70,19 @@ function passwordAlphabetSize(options) {
 function recommendedPairs(options = wordOptions()) {
   try {
     const targetBits = Number($('phrase-entropy-target').value);
-    const required = minimumPassphrasePairs(options, targetBits);
+    const maximum = Number($('phrase-maximum').value);
+    const required = maximum ?
+      minimumPassphrasePairsWithinLimit(options, targetBits, maximum) :
+      minimumPassphrasePairs(options, targetBits);
     $('pair-recommendation').textContent = required === null ?
-      'This configuration cannot reach ' + targetBits + ' bits within 12 word pairs.' :
+      (maximum
+        ? 'No 4–12 pair configuration meets both ' + targetBits +
+          ' bits and a guaranteed ' + maximum + '-character maximum.'
+        : 'This configuration cannot reach ' + targetBits + ' bits within 12 word pairs.') :
       'Minimum calculated length: ' + required + ' word pairs for at least ' +
-      targetBits + ' bits of ideal random-choice entropy. This is not an account-security guarantee.';
+      targetBits + ' bits of random-choice entropy' +
+      (maximum ? ', guaranteed to fit within ' + maximum + ' characters' : '') +
+      '. This is not an account-security guarantee.';
     $('apply-recommended-pairs').disabled = required === null ||
       required === Number(pairs.value);
     return required;
@@ -156,9 +164,18 @@ function explainEntropy() {
     } else {
       recommendedPairs(words);
       const limits = passphraseLengthBounds(words);
+      const maximum = Number($('phrase-maximum').value);
+      const fit = maximum ? passphraseLengthFit(words, maximum) : null;
+      const compatibility = fit?.fit === 'guaranteed'
+        ? ' All generated choices fit the selected maximum.'
+        : fit?.fit === 'impossible'
+          ? ' No possible generated choice fits the selected maximum.'
+          : fit?.fit === 'variable'
+            ? ' Some random choices could exceed the maximum; this limit is advisory, not enforced.'
+            : '';
       $('phrase-length-estimate').textContent = 'Possible output length: ' + limits.minimum +
         '–' + limits.maximum + ' characters across the selected word pairs, separator and extras. ' +
-        'The exact length depends on the random words drawn.';
+        'The exact length depends on the random words drawn.' + compatibility;
       $('entropy-explanation').textContent =
         words.pairs + ' independent choices among ' + DICTIONARY.combinationsPerPair.toLocaleString('en-US') +
         ' adjective–noun combinations each' +
@@ -212,6 +229,11 @@ $('entropy-target').addEventListener('change', () => {
 });
 $('phrase-entropy-target').addEventListener('change', () => {
   if (activeMode() === 'phrase') recommendedPairs();
+});
+$('phrase-maximum').addEventListener('change', () => {
+  // An account-length ceiling is a planning aid, not an output constraint.
+  // It does not generate or mutate an existing secret.
+  if (activeMode() === 'phrase') explainEntropy();
 });
 $('apply-recommended-pairs').addEventListener('click', () => {
   if (activeMode() !== 'phrase') return;
