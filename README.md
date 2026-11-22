@@ -50,8 +50,8 @@ Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbe
 - Hyphen, space, underscore and period separators.
 - Optional uniformly selected digit and symbol.
 - Honest entropy calculation and source-code-readable word lists.
-- Copy button with warning about clipboard persistence, and an explicit **Clear** action that drops the generated secret from the app's active state. Clearing does not clear OS clipboard managers, browser heap snapshots or saved exports.
-- Conceal/reveal on-screen display; the visible secret automatically hides after 30 seconds, when the tab becomes hidden, or when the browser window loses focus. Revealing it starts a fresh 30-second display period. Concealment does not delete the secret from memory or clear the clipboard; use **Clear** to remove it from the app's active state.
+- Copy button with warning about clipboard persistence, and an explicit **Clear** action that drops the generated secret from the app's active state. A successful copy immediately conceals the secret on screen; overlapping clicks are disabled while the clipboard write is pending. Stale asynchronous writes cannot reenable a cleared secret, and the interface warns when an old copied secret may remain on the clipboard. Clearing does not clear OS clipboard managers, browser heap snapshots or saved exports.
+- Conceal/reveal on-screen display; the visible secret automatically hides after a successful copy, after 30 seconds, when the tab becomes hidden, or when the browser window loses focus. Revealing it starts a fresh 30-second display period. Concealment does not delete the secret from memory or clear the clipboard; use **Clear** to remove it from the app's active state.
 - No password data written to browser storage, query strings, network endpoints or logs.
 - Responsive browser interface, plain-language explanations, and MIT license.
 

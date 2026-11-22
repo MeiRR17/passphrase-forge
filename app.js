@@ -246,17 +246,29 @@ copy.addEventListener('click', async () => {
   }
   const copiedRevision = secretRevision;
   const copiedSecret = secret;
+  // Prevent simultaneous writes of this secret. A new generation or Clear
+  // changes the revision, so an old write must not alter new button state.
+  copy.disabled = true;
   try {
     await navigator.clipboard.writeText(copiedSecret);
     if (copiedRevision !== secretRevision) {
       status('Copy completed for a previous secret. The clipboard may still hold it; replace or clear the clipboard.', true);
       return;
     }
-    status('Secret copied. Your clipboard may remain accessible to other apps: clear it after saving it.');
+    // The clipboard may retain the secret, but do not leave it visible in the
+    // textarea while the user switches to their password manager.
+    cancelConcealTimer();
+    concealed = true;
+    showSecret();
+    status('Secret copied and hidden on screen. The clipboard can still be read by other apps; clear it after saving.');
   } catch {
     if (copiedRevision === secretRevision) {
-      status('Copy was blocked by your browser. Reveal the secret and copy manually.', true);
+      status('Copy was blocked by your browser. Reveal and copy the secret manually.', true);
     }
+  } finally {
+    // Never reenable a cleared or superseded secret because an older
+    // asynchronous clipboard operation happened to finish later.
+    if (copiedRevision === secretRevision) copy.disabled = !secret;
   }
 });
 
