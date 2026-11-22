@@ -11,6 +11,7 @@ const copy = $('copy');
 const clear = $('clear');
 const mode = $('generator-mode');
 const passwordLength = $('password-length');
+const enforcePhraseMaximum = $('enforce-phrase-maximum');
 let secret = '';
 let concealed = false;
 let secretRevision = 0;
@@ -150,6 +151,7 @@ function explainEntropy() {
     $('entropy-meter').setAttribute('aria-valuemax', String(Math.max(144, Math.ceil(bits))));
     $('entropy-meter').setAttribute('aria-valuenow', String(Math.round(bits)));
     if (usingPassword) {
+      $('generate').disabled = $('regenerate').disabled = false;
       $('phrase-length-estimate').textContent = '';
       recommendedLength(chars);
       const alphabetSize = passwordAlphabetSize(chars);
@@ -165,13 +167,24 @@ function explainEntropy() {
       recommendedPairs(words);
       const limits = passphraseLengthBounds(words);
       const maximum = Number($('phrase-maximum').value);
+      enforcePhraseMaximum.disabled = maximum === 0;
+      if (!maximum) enforcePhraseMaximum.checked = false;
+      const enforcing = enforcePhraseMaximum.checked;
       const fit = maximum ? passphraseLengthFit(words, maximum) : null;
+      const allowed = !enforcing || fit?.fit === 'guaranteed';
+      $('generate').disabled = $('regenerate').disabled = !allowed;
       const compatibility = fit?.fit === 'guaranteed'
-        ? ' All generated choices fit the selected maximum.'
+        ? (enforcing
+          ? ' Strict maximum enabled: every generated choice fits.'
+          : ' Every generated choice fits the selected maximum; enforcement is off.')
         : fit?.fit === 'impossible'
-          ? ' No possible generated choice fits the selected maximum.'
+          ? (enforcing
+            ? ' Strict maximum blocks generation: no possible choice fits.'
+            : ' No possible choice fits; the selected limit is advisory only.')
           : fit?.fit === 'variable'
-            ? ' Some random choices could exceed the maximum; this limit is advisory, not enforced.'
+            ? (enforcing
+              ? ' Strict maximum blocks generation because some possible choices are too long. Adjust pairs or disable enforcement.'
+              : ' Some choices could exceed the maximum; this limit is advisory unless enforcement is enabled.')
             : '';
       $('phrase-length-estimate').textContent = 'Possible output length: ' + limits.minimum +
         '–' + limits.maximum + ' characters across the selected word pairs, separator and extras. ' +
@@ -198,8 +211,15 @@ function explainEntropy() {
 }
 function generate() {
   try {
-    const result = activeMode() === 'password' ?
-      createRandomPassword(passwordOptions()) : createPassphrase(wordOptions());
+    const usingPassword = activeMode() === 'password';
+    const result = usingPassword
+      ? createRandomPassword(passwordOptions())
+      : createPassphrase({
+        ...wordOptions(),
+        ...(enforcePhraseMaximum.checked
+          ? { maxCharacters: Number($('phrase-maximum').value) }
+          : {}),
+      });
     secretRevision++;
     secret = activeMode() === 'password' ? result.password : result.phrase;
     concealed = false;
@@ -231,9 +251,22 @@ $('phrase-entropy-target').addEventListener('change', () => {
   if (activeMode() === 'phrase') recommendedPairs();
 });
 $('phrase-maximum').addEventListener('change', () => {
-  // An account-length ceiling is a planning aid, not an output constraint.
-  // It does not generate or mutate an existing secret.
+  // When enforcement is on, the previous secret may not satisfy the NEW cap.
+  // Without enforcement the maximum remains informational only.
+  const previouslyEnforcing = enforcePhraseMaximum.checked;
+  if (!Number($('phrase-maximum').value)) enforcePhraseMaximum.checked = false;
+  if (previouslyEnforcing) clearSecret();
   if (activeMode() === 'phrase') explainEntropy();
+  if (previouslyEnforcing) status('Maximum changed. The previous secret was cleared; generate again using the new limit.');
+});
+enforcePhraseMaximum.addEventListener('change', () => {
+  // Invalidate secrets created without this setting; never present an older
+  // passphrase as meeting a newly selected strict account maximum.
+  clearSecret();
+  explainEntropy();
+  status(enforcePhraseMaximum.checked
+    ? 'Strict maximum enabled. Incompatible configurations cannot generate any secret.'
+    : 'Strict maximum disabled. The selected account length is now advisory only.');
 });
 $('apply-recommended-pairs').addEventListener('click', () => {
   if (activeMode() !== 'phrase') return;

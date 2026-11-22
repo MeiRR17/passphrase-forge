@@ -163,14 +163,25 @@ export function minimumPassphrasePairsWithinLimit(
 /**
  * Generate an unpredictable passphrase from uniform independent choices.
  * The returned string is never persisted or transmitted by this library.
- * @param {{pairs?:number, separator?:string, digit?:boolean, symbol?:boolean}} options
+ * @param {{pairs?:number, separator?:string, digit?:boolean, symbol?:boolean, maxCharacters?:number}} options
+ *   Optional hard limit: refuse to draw ANY secret unless every possible
+ *   combination fits. Never truncate or redraw from a restricted subset.
  */
 export function createPassphrase(options = {}) {
-  const { pairs = DEFAULT_PAIR_COUNT, separator = '-', digit = false, symbol = false } = options;
+  const { pairs = DEFAULT_PAIR_COUNT, separator = '-', digit = false, symbol = false, maxCharacters } = options;
   if (!ALLOWED_SEPARATORS.has(separator)) throw new RangeError('Unsupported separator.');
   if (typeof digit !== 'boolean' || typeof symbol !== 'boolean')
     throw new TypeError('Digit and symbol options must be boolean.');
   const bits = calculateEntropy(pairs, { digit, symbol });
+  if (maxCharacters !== undefined) {
+    // Validate BEFORE requesting any randomness. Re-rolling only oversized
+    // choices would skew the original word distribution and invalidate the
+    // displayed independent-choice entropy.
+    const fit = passphraseLengthFit({ pairs, separator, digit, symbol }, maxCharacters);
+    if (fit.fit !== 'guaranteed') {
+      throw new RangeError('Passphrase cannot be guaranteed to fit the maximum. Choose fewer pairs or a larger limit.');
+    }
+  }
   const words = [];
   for (let i = 0; i < pairs; i++) {
     words.push(adjectives[secureIndex(adjectives.length)] + '-' + nouns[secureIndex(nouns.length)]);

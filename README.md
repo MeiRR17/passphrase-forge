@@ -28,11 +28,11 @@ API: `passphraseLengthBounds({ pairs: 6, separator: '-', digit: false, symbol: t
 
 ### Account maximum-length compatibility planner
 
-If an account service imposes a maximum secret length, choose **External account maximum length** (32, 48, 64, 96, 128 or 256 characters) in word-pair mode. The app compares the selected word-pair configuration's shortest and longest possible outputs against that limit: **guaranteed** (all outputs fit), **variable** (some may exceed the limit), or **impossible** (none fit). This calculation is deterministic, does not draw randomness, and never sends the limit to a network service. It does **not** enforce the limit during generation, check password acceptance at a remote service, or alter existing generated secrets.
+If an account service imposes a maximum secret length, choose **External account maximum length** (32, 48, 64, 96, 128 or 256 characters) in word-pair mode. The app compares the selected word-pair configuration's shortest and longest possible outputs against that limit: **guaranteed** (all outputs fit), **variable** (some may exceed the limit), or **impossible** (none fit). This calculation is deterministic, does not draw randomness, and never sends the limit to a network service. The length selector remains **advisory by default**. The separate opt-in **Enforce maximum when generating** checkbox makes the generator reject configurations unless their **worst-case** length fits. It does not shorten or redraw word choices, so the underlying uniform distribution and stated entropy remain unchanged. Switching enforcement on clears any existing generated secret; changing the selected maximum while enforcement is on also clears it. An incompatible configuration disables Generate and Regenerate until adjusted. No remote account policy is queried.
 
 When a limit is selected, **Use suggested pairs** now recommends the smallest 4–12 pair count meeting both the chosen entropy target and a *guaranteed* maximum length. If no pair count can satisfy both, it explicitly reports no available recommendation rather than suggesting a shorter, weaker phrase. The underlying independent selections and entropy calculation do not change. Other account restrictions (minimum length, spaces, character classes, Unicode support) must still be reviewed separately.
 
-Pure API: `passphraseLengthFit({ pairs: 6, separator: '-' }, 64)` returns bounds and `fit: 'guaranteed' | 'variable' | 'impossible'`; `minimumPassphrasePairsWithinLimit({ separator: '-', digit: false, symbol: false }, 80, 64)` returns the minimum compatible pair count or `null`. No secret generation is involved.
+Pure API: `passphraseLengthFit({ pairs: 6, separator: '-' }, 64)` returns bounds and `fit: 'guaranteed' | 'variable' | 'impossible'`; `minimumPassphrasePairsWithinLimit({ separator: '-', digit: false, symbol: false }, 80, 64)` returns the minimum compatible pair count or `null`. Neither planner generates a secret. For code that **requires** a strict maximum, use `createPassphrase({ pairs: 6, separator: '-', maxCharacters: 96 })`; the function throws `RangeError` *before* any random choices if the maximum cannot be guaranteed, and keeps its original uniform sampling if it can. The optional limit is a hard output-length bound, not validation of minimum lengths or other service restrictions.
 
 ### Word-pair entropy planner
 
@@ -82,6 +82,7 @@ The implementation is a browser ES module:
     const wordPairLengths = passphraseLengthBounds({ pairs: 6, separator: '-' });
     const accountFit = passphraseLengthFit({ pairs: 6, separator: '-' }, 64);
     const guaranteedPairs = minimumPassphrasePairsWithinLimit({ separator: '-' }, 80, 64);
+    const strict = createPassphrase({ pairs: 6, maxCharacters: 96 }); // Throws if worst-case output would not fit.
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 
