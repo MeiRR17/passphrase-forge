@@ -1,4 +1,4 @@
-import { createPassphrase, calculateEntropy, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
+import { createPassphrase, calculateEntropy, minimumPassphrasePairs, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
 
 const $ = id => document.getElementById(id);
 const pairs = $('pairs');
@@ -41,6 +41,24 @@ function passwordAlphabetSize(options) {
   return options.excludeAmbiguous ?
     [...included].filter(char => !'0Oo1lIi'.includes(char)).length : included.length;
 }
+function recommendedPairs(options = wordOptions()) {
+  try {
+    const targetBits = Number($('phrase-entropy-target').value);
+    const required = minimumPassphrasePairs(options, targetBits);
+    $('pair-recommendation').textContent = required === null ?
+      'This configuration cannot reach ' + targetBits + ' bits within 12 word pairs.' :
+      'Minimum calculated length: ' + required + ' word pairs for at least ' +
+      targetBits + ' bits of ideal random-choice entropy. This is not an account-security guarantee.';
+    $('apply-recommended-pairs').disabled = required === null ||
+      required === Number(pairs.value);
+    return required;
+  } catch (error) {
+    $('pair-recommendation').textContent = error.message;
+    $('apply-recommended-pairs').disabled = true;
+    return null;
+  }
+}
+
 function recommendedLength(options = passwordOptions()) {
   try {
     const targetBits = Number($('entropy-target').value);
@@ -108,6 +126,7 @@ function explainEntropy() {
           'Enabled character groups are possible, but not guaranteed to appear.') +
         (chars.excludeAmbiguous ? ' Look-alike characters are excluded before sampling.' : '');
     } else {
+      recommendedPairs(words);
       $('entropy-explanation').textContent =
         words.pairs + ' independent choices among ' + DICTIONARY.combinationsPerPair.toLocaleString('en-US') +
         ' adjective–noun combinations each' +
@@ -123,6 +142,7 @@ function explainEntropy() {
     $('entropy-meter').setAttribute('aria-valuenow','0');
     $('entropy-explanation').textContent = error.message;
     if (usingPassword) recommendedLength(passwordOptions());
+    else recommendedPairs(wordOptions());
     return false;
   }
 }
@@ -153,8 +173,19 @@ for (const control of [pairs, separator, digit, symbol, mode, passwordLength,
   });
 }
 $('entropy-target').addEventListener('change', () => {
-  // The target is only planning guidance; it does not regenerate or clear a secret.
+  // Planning guidance never generates or clears an existing secret.
   if (activeMode() === 'password') recommendedLength();
+});
+$('phrase-entropy-target').addEventListener('change', () => {
+  if (activeMode() === 'phrase') recommendedPairs();
+});
+$('apply-recommended-pairs').addEventListener('click', () => {
+  if (activeMode() !== 'phrase') return;
+  const required = recommendedPairs();
+  if (required === null || required === Number(pairs.value)) return;
+  pairs.value = String(required);
+  // This uses the existing setting-change handler, which clears stale secrets.
+  pairs.dispatchEvent(new Event('input', { bubbles: true }));
 });
 $('apply-recommended-length').addEventListener('click', () => {
   if (activeMode() !== 'password') return;

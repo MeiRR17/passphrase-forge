@@ -20,6 +20,12 @@ Every list index is selected independently with `crypto.getRandomValues()` and r
 
 Passphrase length and entropy are calculated from actual generator choices; the result is not a claim of immunity to guessing, phishing, malware, breaches, or password-reuse attacks.
 
+### Word-pair entropy planner
+
+Memorable-word mode also offers an **entropy-target planner** with targets of 64, 80, 96, 128 and 160 bits. It finds the smallest permitted number of independent adjective–noun pairs (4–12) needed for the chosen target, counting any enabled random digit or symbol. For example, 80 bits without extra characters requires 7 word pairs; the 160-bit option cannot be met within the 12-pair limit and reports that explicitly. The planner never creates a secret.
+
+Call \`minimumPassphrasePairs({ digit: false, symbol: false }, 80)\` from the library. Choosing **Use suggested pairs** updates the slider and invalidates a previously generated secret, which must then be regenerated explicitly. Mathematical entropy estimates are not account-security guarantees.
+
 ### Character-password mode
 
 Choose a length from **12–64** characters, and enable any combination of lowercase letters (26), uppercase letters (26), numbers (10) and symbols (12). By default, the generator selects **each position uniformly and independently** from the combined alphabet using the same Web Crypto rejection sampling. With alphabet size `N` and password length `L`, the unconstrained random-choice entropy is `L × log2(N)` bits. If the optional require-every-group rule is enabled, accepted passwords remain uniformly distributed over the qualifying subset and the entropy estimate is adjusted accordingly. There is no biased shuffle or insecure random fallback.
@@ -53,11 +59,12 @@ Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbe
 
 The implementation is a browser ES module:
 
-    import { createPassphrase, calculateEntropy, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
+    import { createPassphrase, calculateEntropy, minimumPassphrasePairs, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
     const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
     const readable = createRandomPassword({ length: 24, excludeAmbiguous: true });
     const minLength128 = minimumPasswordLength({ lower: true, upper: true, numbers: true, special: true }, 128);
+    const minPairs80 = minimumPassphrasePairs({ digit: false, symbol: false }, 80);
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 

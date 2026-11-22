@@ -76,6 +76,24 @@ export function calculateEntropy(pairCount, { digit = false, symbol = false } = 
 }
 
 /**
+ * Find the smallest number of word pairs meeting a chosen mathematical
+ * entropy target under the optional digit/symbol choices.
+ * Does not generate or retain any secret.
+ */
+export function minimumPassphrasePairs({ digit = false, symbol = false } = {}, targetBits = 80) {
+  if (typeof digit !== 'boolean' || typeof symbol !== 'boolean') {
+    throw new TypeError('Digit and symbol options must be boolean.');
+  }
+  if (!Number.isFinite(targetBits) || targetBits <= 0 || targetBits > 256) {
+    throw new RangeError('Target entropy must be between 0 and 256 bits.');
+  }
+  for (let pairs = 4; pairs <= 12; pairs++) {
+    if (calculateEntropy(pairs, { digit, symbol }) >= targetBits) return pairs;
+  }
+  return null;
+}
+
+/**
  * Generate an unpredictable passphrase from uniform independent choices.
  * The returned string is never persisted or transmitted by this library.
  * @param {{pairs?:number, separator?:string, digit?:boolean, symbol?:boolean}} options

@@ -45,6 +45,20 @@
           <label class="toggle"><span><strong>Add a random digit</strong><small>One digit from 0–9</small></span><input id="digit" type="checkbox"></label>
           <label class="toggle"><span><strong>Add a random symbol</strong><small>One of eight punctuation symbols</small></span><input id="symbol" type="checkbox"></label>
         </fieldset>
+        <div class="entropy-target-panel">
+          <label for="phrase-entropy-target">Plan word pairs for an entropy target</label>
+          <div class="entropy-target-actions">
+            <select id="phrase-entropy-target" aria-describedby="pair-recommendation">
+              <option value="64">64 bits</option>
+              <option value="80" selected>80 bits</option>
+              <option value="96">96 bits</option>
+              <option value="128">128 bits</option>
+              <option value="160">160 bits</option>
+            </select>
+            <button id="apply-recommended-pairs" type="button" class="button subtle">Use suggested pairs</button>
+          </div>
+          <p id="pair-recommendation" aria-live="polite">Choose a target to see the fewest word pairs needed.</p>
+        </div>
         </div>
         <div id="password-options" hidden>
           <div class="label-row"><label for="password-length">Password length</label><strong id="password-length-value">20 characters</strong></div>
