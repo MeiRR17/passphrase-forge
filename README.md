@@ -20,6 +20,12 @@ Every list index is selected independently with `crypto.getRandomValues()` and r
 
 Passphrase length and entropy are calculated from actual generator choices; the result is not a claim of immunity to guessing, phishing, malware, breaches, or password-reuse attacks.
 
+### Passphrase character-length bounds
+
+Before generating a word-pair passphrase, the interface now displays the minimum and maximum possible **character lengths** for the selected number of pairs, separator, random-digit and random-symbol options. The pure `passphraseLengthBounds()` function uses the shortest and longest words from both built-in dictionaries, counts the hyphen inside each adjective–noun pair and the selected separator between pairs, and includes optional suffix characters. No secret or random choice is created by this calculation. The exact length of a generated secret depends on the selected words; the bounds can help evaluate maximum-length account restrictions, but do not verify the password policy of any external service. In character-password mode the length is already fixed by the slider.
+
+API: `passphraseLengthBounds({ pairs: 6, separator: '-', digit: false, symbol: true })` returns `{ minimum, maximum, pairCount }` without touching the browser clipboard or storage.
+
 ### Word-pair entropy planner
 
 Memorable-word mode also offers an **entropy-target planner** with targets of 64, 80, 96, 128 and 160 bits. It finds the smallest permitted number of independent adjective–noun pairs (4–12) needed for the chosen target, counting any enabled random digit or symbol. For example, 80 bits without extra characters requires 7 word pairs; the 160-bit option cannot be met within the 12-pair limit and reports that explicitly. The planner never creates a secret.
@@ -59,12 +65,13 @@ Library callers can use `minimumPasswordLength({ lower: true, upper: true, numbe
 
 The implementation is a browser ES module:
 
-    import { createPassphrase, calculateEntropy, minimumPassphrasePairs, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
+    import { createPassphrase, calculateEntropy, minimumPassphrasePairs, passphraseLengthBounds, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength } from './src/generator.js';
     const result = createPassphrase({ pairs: 6, separator: '-', digit: false, symbol: false });
     const random = createRandomPassword({ length: 20, lower: true, upper: true, numbers: true, special: true });
     const readable = createRandomPassword({ length: 24, excludeAmbiguous: true });
     const minLength128 = minimumPasswordLength({ lower: true, upper: true, numbers: true, special: true }, 128);
     const minPairs80 = minimumPassphrasePairs({ digit: false, symbol: false }, 80);
+    const wordPairLengths = passphraseLengthBounds({ pairs: 6, separator: '-' });
 
 `result.phrase` and `random.password` are secrets and should never be logged or persisted by default. The returned `bits` estimates describe the generator’s actual random choices.
 

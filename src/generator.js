@@ -94,6 +94,33 @@ export function minimumPassphrasePairs({ digit = false, symbol = false } = {}, t
 }
 
 /**
+ * Length range for every possible secret under the selected word-pair rules.
+ * No random draws and no generated string are created or retained. Each pair
+ * contains an internal hyphen, while separators join whole pairs only.
+ * This predicts code-unit lengths for the ASCII built-in dictionaries.
+ */
+export function passphraseLengthBounds({
+  pairs = DEFAULT_PAIR_COUNT, separator = '-', digit = false, symbol = false,
+} = {}) {
+  if (!ALLOWED_SEPARATORS.has(separator)) throw new RangeError('Unsupported separator.');
+  if (typeof digit !== 'boolean' || typeof symbol !== 'boolean') {
+    throw new TypeError('Digit and symbol options must be boolean.');
+  }
+  // Reuse the exact pair-count range accepted by createPassphrase().
+  calculateEntropy(pairs, { digit, symbol });
+  const lengths = words => words.map(word => word.length);
+  const adjectivesLengths = lengths(adjectives);
+  const nounsLengths = lengths(nouns);
+  const prefixLength = (pairs - 1) * separator.length +
+    (digit ? 1 : 0) + (symbol ? 1 : 0);
+  return {
+    minimum: pairs * (Math.min(...adjectivesLengths) + 1 + Math.min(...nounsLengths)) + prefixLength,
+    maximum: pairs * (Math.max(...adjectivesLengths) + 1 + Math.max(...nounsLengths)) + prefixLength,
+    pairCount: pairs,
+  };
+}
+
+/**
  * Generate an unpredictable passphrase from uniform independent choices.
  * The returned string is never persisted or transmitted by this library.
  * @param {{pairs?:number, separator?:string, digit?:boolean, symbol?:boolean}} options

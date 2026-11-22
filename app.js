@@ -1,4 +1,4 @@
-import { createPassphrase, calculateEntropy, minimumPassphrasePairs, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
+import { createPassphrase, calculateEntropy, minimumPassphrasePairs, passphraseLengthBounds, DICTIONARY, createRandomPassword, calculatePasswordEntropy, minimumPasswordLength, PASSWORD_ALPHABETS } from './src/generator.js';
 
 const $ = id => document.getElementById(id);
 const pairs = $('pairs');
@@ -142,6 +142,7 @@ function explainEntropy() {
     $('entropy-meter').setAttribute('aria-valuemax', String(Math.max(144, Math.ceil(bits))));
     $('entropy-meter').setAttribute('aria-valuenow', String(Math.round(bits)));
     if (usingPassword) {
+      $('phrase-length-estimate').textContent = '';
       recommendedLength(chars);
       const alphabetSize = passwordAlphabetSize(chars);
       $('entropy-explanation').textContent =
@@ -154,6 +155,10 @@ function explainEntropy() {
         (chars.excludeAmbiguous ? ' Look-alike characters are excluded before sampling.' : '');
     } else {
       recommendedPairs(words);
+      const limits = passphraseLengthBounds(words);
+      $('phrase-length-estimate').textContent = 'Possible output length: ' + limits.minimum +
+        '–' + limits.maximum + ' characters across the selected word pairs, separator and extras. ' +
+        'The exact length depends on the random words drawn.';
       $('entropy-explanation').textContent =
         words.pairs + ' independent choices among ' + DICTIONARY.combinationsPerPair.toLocaleString('en-US') +
         ' adjective–noun combinations each' +
@@ -168,6 +173,7 @@ function explainEntropy() {
     $('meter-fill').style.width = '0';
     $('entropy-meter').setAttribute('aria-valuenow','0');
     $('entropy-explanation').textContent = error.message;
+    $('phrase-length-estimate').textContent = '';
     if (usingPassword) recommendedLength(passwordOptions());
     else recommendedPairs(wordOptions());
     return false;
