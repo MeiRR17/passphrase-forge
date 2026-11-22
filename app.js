@@ -198,8 +198,11 @@ function explainEntropy() {
     }
     return true;
   } catch (error) {
+    // Fail closed: a previously valid setting must not leave generation
+    // controls enabled while the entropy/preflight check is failing.
+    $('generate').disabled = $('regenerate').disabled = true;
     $('bits').textContent = '—';
-    $('grade').textContent = 'Select a character set';
+    $('grade').textContent = 'Invalid generation settings';
     $('meter-fill').style.width = '0';
     $('entropy-meter').setAttribute('aria-valuenow','0');
     $('entropy-explanation').textContent = error.message;

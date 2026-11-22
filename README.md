@@ -18,7 +18,7 @@ Every list index is selected independently with `crypto.getRandomValues()` and r
 
 **Random-choice entropy**, not a password “quality score,” is reported. With six independent pairs, the entropy is 6 × log2(4,096) = **72 bits**, assuming unpredictable generation and the full list available to an attacker. Adding a random digit gives log2(10) extra bits; one uniformly selected symbol from eight choices adds 3 more bits. Separators do **not** add entropy.
 
-Passphrase length and entropy are calculated from actual generator choices; the result is not a claim of immunity to guessing, phishing, malware, breaches, or password-reuse attacks.
+Passphrase length and entropy are calculated from actual generator choices; the result is not a claim of immunity to guessing, phishing, malware, breaches, or password-reuse attacks. The public `calculateEntropy(pairs, { digit, symbol })` API now requires **actual booleans** for optional random digit/symbol selections (matching `createPassphrase()`); values such as the string `'false'` are rejected rather than counted as extra randomness. In the browser, if a generator preflight or entropy calculation fails, Generate and Regenerate are disabled until the settings become valid, so the meter never silently represents a rejected configuration as generatable.
 
 ### Passphrase character-length bounds
 

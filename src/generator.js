@@ -71,6 +71,12 @@ export const DICTIONARY = Object.freeze({
 export function calculateEntropy(pairCount, { digit = false, symbol = false } = {}) {
   if (!Number.isInteger(pairCount) || pairCount < 4 || pairCount > 12)
     throw new RangeError('Choose 4–12 word pairs.');
+  // The public entropy calculator must enforce the generator's exact input
+  // contract. Otherwise truthy strings such as { digit: 'false' } silently
+  // overstate the bits attributed to a secret the generator would reject.
+  if (typeof digit !== 'boolean' || typeof symbol !== 'boolean') {
+    throw new TypeError('Digit and symbol options must be boolean.');
+  }
   return pairCount * Math.log2(DICTIONARY.combinationsPerPair) +
     (digit ? Math.log2(10) : 0) + (symbol ? Math.log2(SYMBOLS.length) : 0);
 }
