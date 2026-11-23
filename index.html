@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102033">
+  <meta name="description" content="Create strong memorable passphrases using cryptographically secure randomness. Nothing is saved or sent.">
+  <title>Passphrase Forge — memorable security</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="logo" aria-hidden="true">✳</span><strong>passphrase<span>forge</span></strong><small>secure by design</small></a>
+    <a class="github" href="https://github.com/MeiRR17/passphrase-forge" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+  </header>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow"><span class="indicator"></span> CRYPTOGRAPHIC RANDOMNESS. ZERO TRACKING.</div>
+      <h1>Strong enough to protect.<br><em>Simple enough to remember.</em></h1>
+      <p>Create a memorable passphrase or a random-character password using cryptographically secure choices. No login, tracking or hidden “strength score.”</p>
+    </section>
+    <div class="workspace">
+      <section class="panel settings" aria-labelledby="options-heading">
+        <div class="heading"><span class="step">01</span><div><h2 id="options-heading">Customize your passphrase</h2><p>Choose a balance of length and convenience.</p></div></div>
+        <label class="field" for="generator-mode">Generation method
+          <select id="generator-mode">
+            <option value="phrase">Memorable word pairs</option>
+            <option value="password">Random characters</option>
+          </select>
+        </label>
+        <div id="word-options">
+        <div class="label-row"><label for="pairs">Word pairs</label><strong id="pairs-value">6 pairs</strong></div>
+        <input type="range" id="pairs" min="4" max="12" step="1" value="6">
+        <div class="range-labels"><span>4 · shorter</span><span>12 · stronger</span></div>
+        <p id="phrase-length-estimate" class="settings-hint" aria-live="polite">Possible passphrase character length will appear here.</p>
+        <label class="field" for="phrase-maximum">External account maximum length (planning only)
+          <select id="phrase-maximum" aria-describedby="phrase-length-estimate pair-recommendation">
+            <option value="0" selected>No stated maximum</option>
+            <option value="32">32 characters</option>
+            <option value="48">48 characters</option>
+            <option value="64">64 characters</option>
+            <option value="96">96 characters</option>
+            <option value="128">128 characters</option>
+            <option value="256">256 characters</option>
+          </select>
+        </label>
+        <label class="toggle" for="enforce-phrase-maximum"><span><strong>Enforce maximum when generating</strong><small>Reject configurations that might exceed the selected maximum, instead of shortening or rerolling random words.</small></span><input id="enforce-phrase-maximum" type="checkbox" disabled aria-describedby="phrase-length-estimate"></label>
+        <label class="field" for="separator">Separator between pairs
+          <select id="separator">
+            <option value="-">Hyphen (-)</option>
+            <option value=" ">Space</option>
+            <option value=".">Period (.)</option>
+            <option value="_">Underscore (_)</option>
+          </select>
+        </label>
+        <fieldset class="extras"><legend>Optional characters</legend>
+          <label class="toggle"><span><strong>Add a random digit</strong><small>One digit from 0–9</small></span><input id="digit" type="checkbox"></label>
+          <label class="toggle"><span><strong>Add a random symbol</strong><small>One of eight punctuation symbols</small></span><input id="symbol" type="checkbox"></label>
+        </fieldset>
+        <div class="entropy-target-panel">
+          <label for="phrase-entropy-target">Plan word pairs for an entropy target</label>
+          <div class="entropy-target-actions">
+            <select id="phrase-entropy-target" aria-describedby="pair-recommendation">
+              <option value="64">64 bits</option>
+              <option value="80" selected>80 bits</option>
+              <option value="96">96 bits</option>
+              <option value="128">128 bits</option>
+              <option value="160">160 bits</option>
+            </select>
+            <button id="apply-recommended-pairs" type="button" class="button subtle">Use suggested pairs</button>
+          </div>
+          <p id="pair-recommendation" aria-live="polite">Choose a target to see the fewest word pairs needed.</p>
+        </div>
+        </div>
+        <div id="password-options" hidden>
+          <div class="label-row"><label for="password-length">Password length</label><strong id="password-length-value">20 characters</strong></div>
+          <input id="password-length" type="range" min="12" max="64" step="1" value="20">
+          <label class="field" for="password-maximum">External account maximum length (planning only)
+            <select id="password-maximum"><option value="0" selected>No stated maximum</option><option value="16">16 characters</option><option value="20">20 characters</option><option value="24">24 characters</option><option value="32">32 characters</option><option value="48">48 characters</option><option value="64">64 characters</option></select>
+          </label>
+          <label class="toggle" for="enforce-password-maximum"><span><strong>Enforce maximum when generating</strong><small>Reject a selected length above the chosen cap. The password is never truncated.</small></span><input id="enforce-password-maximum" type="checkbox" disabled></label>
+          <p class="settings-hint">The maximum is advisory until enforcement is enabled. Other account rules are not checked.</p>
+          <div class="range-labels"><span>12 · shorter</span><span>64 · longer</span></div>
+          <fieldset class="extras"><legend>Allowed characters</legend>
+            <label class="toggle"><span><strong>Lowercase letters</strong><small>a–z (26 choices)</small></span><input id="charset-lower" type="checkbox" checked></label>
+            <label class="toggle"><span><strong>Uppercase letters</strong><small>A–Z (26 choices)</small></span><input id="charset-upper" type="checkbox" checked></label>
+            <label class="toggle"><span><strong>Numbers</strong><small>0–9 (10 choices)</small></span><input id="charset-numbers" type="checkbox" checked></label>
+            <label class="toggle"><span><strong>Symbols</strong><small>!@#$%&amp;*?_-+= (12 choices)</small></span><input id="charset-special" type="checkbox" checked></label>
+            <label class="toggle"><span><strong>Avoid look-alike characters</strong><small>Exclude 0, O, o, 1, l, I and i</small></span><input id="exclude-ambiguous" type="checkbox"></label>
+            <label class="toggle"><span><strong>Require every selected group</strong><small>At least one of each enabled letter, number or symbol category</small></span><input id="require-each" type="checkbox"></label>
+          </fieldset>
+          <div class="entropy-target-panel">
+            <label for="entropy-target">Plan password length for an entropy target</label>
+            <div class="entropy-target-actions">
+              <select id="entropy-target" aria-describedby="target-recommendation">
+                <option value="64">64 bits</option>
+                <option value="80" selected>80 bits</option>
+                <option value="128">128 bits</option>
+                <option value="192">192 bits</option>
+                <option value="256">256 bits</option>
+              </select>
+              <button id="apply-recommended-length" type="button" class="button subtle">Use suggested length</button>
+            </div>
+            <p id="target-recommendation" aria-live="polite">Choose a target to see the minimum length for the selected character options.</p>
+          </div>
+          <p class="settings-hint">Characters are picked uniformly from the enabled alphabet. By default categories are <strong>not guaranteed</strong>; choose the optional requirement above to keep only secure draws containing every enabled category.</p>
+        </div>
+        <button id="generate" type="button" class="button primary">✳ Generate passphrase</button>
+        <p class="settings-hint">Each choice uses <code>crypto.getRandomValues()</code>. There is no insecure fallback.</p>
+      </section>
+
+      <section class="panel result" aria-labelledby="result-heading">
+        <div class="result-head"><div><span class="section-label">02 / GENERATED SECRET</span><h2 id="result-heading">Your new passphrase</h2></div><span class="privacy-badge">◈ Local only</span></div>
+        <div class="phrase-box">
+          <label for="phrase" class="sr-only">Generated passphrase</label>
+          <textarea id="phrase" readonly rows="3" placeholder="Select Generate to create a private passphrase." spellcheck="false" autocomplete="off"></textarea>
+        </div>
+        <p class="settings-hint" id="display-hint">The visible secret is hidden after copying, after 30 seconds or when this window loses focus. Use Reveal to inspect it again, or Clear to remove it from the page state. Copying does not clear your system clipboard.</p>
+        <div class="result-actions">
+          <button type="button" id="copy" class="button copy" disabled>Copy passphrase</button>
+          <button type="button" id="reveal" class="button subtle" disabled>Hide passphrase</button>
+          <button type="button" id="regenerate" class="button subtle">↻ Regenerate</button>
+          <button type="button" id="clear" class="button subtle" disabled>Clear</button>
+        </div>
+        <div class="entropy">
+          <div class="entropy-head"><div><span class="section-label">RANDOM-CHOICE ENTROPY</span><div class="bits"><strong id="bits">72</strong><span>bits</span></div></div><span id="grade" class="grade">High</span></div>
+          <div class="meter" role="progressbar" id="entropy-meter" aria-valuemin="0" aria-valuemax="144" aria-valuenow="72" aria-label="Estimated randomness in bits"><div id="meter-fill"></div></div>
+          <p id="entropy-explanation">Six independent word pairs from 4,096 combinations each produce about 72 bits of random-choice entropy.</p>
+        </div>
+        <div class="guidance">
+          <h3>How to use this safely</h3>
+          <ul>
+            <li>Use a <strong>different passphrase for every important account</strong>.</li>
+            <li>Store it in a trusted password manager, especially if you cannot memorize it.</li>
+            <li>Avoid sharing, screenshots, or saving secrets in documents.</li>
+            <li>Strength depends on how the passphrase is generated, not on decorative characters.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+    <section class="explainer">
+      <article><div class="feature-icon">◇</div><h3>No guessing disguised as science</h3><p>Entropy is calculated from the size of the generator’s word-pair choices, not from how complicated a phrase appears.</p></article>
+      <article><div class="feature-icon">◈</div><h3>Your browser does the work</h3><p>Everything runs locally. Generated phrases are not stored in localStorage, analytics, history, or a remote service.</p></article>
+      <article><div class="feature-icon">✳</div><h3>Built to be remembered</h3><p>Independent, easy-to-picture adjective–noun pairs make random secrets more memorable than arbitrary symbols.</p></article>
+    </section>
+    <p id="status" role="status" aria-live="polite" class="status"></p>
+  </main>
+  <footer><span>Passphrase Forge · Open-source security utility</span><span>Built by <a href="https://github.com/MeiRR17" target="_blank" rel="noopener noreferrer">Meir Dvir</a></span></footer>
+</body>
+</html>
