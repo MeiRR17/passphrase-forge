@@ -219,10 +219,14 @@ export const PASSWORD_ALPHABETS = Object.freeze({
 const AMBIGUOUS = new Set('0Oo1lIi');
 const MAX_PASSWORD_LENGTH = 64;
 const MIN_PASSWORD_LENGTH = 12;
-function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true, excludeAmbiguous = false, requireEach = false } = {}) {
+function passwordSettings({ length = 20, lower = true, upper = true, numbers = true, special = true, excludeAmbiguous = false, requireEach = false, maxCharacters = null } = {}) {
   if (!Number.isInteger(length) || length < MIN_PASSWORD_LENGTH || length > MAX_PASSWORD_LENGTH) {
     throw new RangeError('Choose a password length between 12 and 64 characters.');
   }
+  if (maxCharacters !== null && (!Number.isInteger(maxCharacters) || maxCharacters < MIN_PASSWORD_LENGTH || maxCharacters > MAX_PASSWORD_LENGTH)) {
+    throw new RangeError('Maximum password length must be between 12 and 64 characters.');
+  }
+  if (maxCharacters !== null && length > maxCharacters) throw new RangeError('Selected password length exceeds the enforced maximum.');
   for (const setting of [lower, upper, numbers, special, excludeAmbiguous, requireEach]) {
     if (typeof setting !== 'boolean') throw new TypeError('Character options must be boolean.');
   }
@@ -240,7 +244,7 @@ function passwordSettings({ length = 20, lower = true, upper = true, numbers = t
   if (requireEach && groups.some(group => !group.characters.length)) {
     throw new RangeError('Each required character group must have eligible characters.');
   }
-  return { alphabet, length, selected, excludeAmbiguous, requireEach, groups };
+  return { alphabet, length, selected, excludeAmbiguous, requireEach, groups, maxCharacters };
 }
 
 /**
