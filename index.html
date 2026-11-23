@@ -76,6 +76,11 @@
         <div id="password-options" hidden>
           <div class="label-row"><label for="password-length">Password length</label><strong id="password-length-value">20 characters</strong></div>
           <input id="password-length" type="range" min="12" max="64" step="1" value="20">
+          <label class="field" for="password-maximum">External account maximum length (planning only)
+            <select id="password-maximum"><option value="0" selected>No stated maximum</option><option value="16">16 characters</option><option value="20">20 characters</option><option value="24">24 characters</option><option value="32">32 characters</option><option value="48">48 characters</option><option value="64">64 characters</option></select>
+          </label>
+          <label class="toggle" for="enforce-password-maximum"><span><strong>Enforce maximum when generating</strong><small>Reject a selected length above the chosen cap. The password is never truncated.</small></span><input id="enforce-password-maximum" type="checkbox" disabled></label>
+          <p class="settings-hint">The maximum is advisory until enforcement is enabled. Other account rules are not checked.</p>
           <div class="range-labels"><span>12 · shorter</span><span>64 · longer</span></div>
           <fieldset class="extras"><legend>Allowed characters</legend>
             <label class="toggle"><span><strong>Lowercase letters</strong><small>a–z (26 choices)</small></span><input id="charset-lower" type="checkbox" checked></label>
