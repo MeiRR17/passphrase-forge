@@ -59,6 +59,7 @@ function passwordOptions() {
     special: $('charset-special').checked,
     excludeAmbiguous: $('exclude-ambiguous').checked,
     requireEach: $('require-each').checked,
+    maxCharacters: $('enforce-password-maximum').checked ? Number($('password-maximum').value) : null,
   };
 }
 function passwordAlphabetSize(options) {
@@ -97,14 +98,17 @@ function recommendedPairs(options = wordOptions()) {
 function recommendedLength(options = passwordOptions()) {
   try {
     const targetBits = Number($('entropy-target').value);
-    const length = minimumPasswordLength(options, targetBits);
+    const length = minimumPasswordLength({ ...options, maxCharacters: null }, targetBits);
+    const maximum = Number($('password-maximum').value);
+    const fits = length !== null && (!maximum || length <= maximum);
     $('target-recommendation').textContent = length === null ?
       'This alphabet cannot reach ' + targetBits + ' bits within the 64-character limit.' :
+      !fits ? 'The minimum length for ' + targetBits + ' bits is ' + length + ' characters, above the selected ' + maximum + '-character maximum.' :
       'Minimum calculated length: ' + length + ' characters for at least ' + targetBits +
-      ' bits of ideal random-choice entropy. This is not an account-security guarantee.';
-    $('apply-recommended-length').disabled = length === null ||
-      length === Number(passwordLength.value);
-    return length;
+      ' bits of ideal random-choice entropy' + (maximum ? ', within the selected ' + maximum + '-character maximum' : '') +
+      '. This is not an account-security guarantee.';
+    $('apply-recommended-length').disabled = !fits || length === Number(passwordLength.value);
+    return fits ? length : null;
   } catch (error) {
     $('target-recommendation').textContent = error.message;
     $('apply-recommended-length').disabled = true;
@@ -151,7 +155,10 @@ function explainEntropy() {
     $('entropy-meter').setAttribute('aria-valuemax', String(Math.max(144, Math.ceil(bits))));
     $('entropy-meter').setAttribute('aria-valuenow', String(Math.round(bits)));
     if (usingPassword) {
-      $('generate').disabled = $('regenerate').disabled = false;
+      const maximum = Number($('password-maximum').value);
+      $('enforce-password-maximum').disabled = maximum === 0;
+      if (!maximum) $('enforce-password-maximum').checked = false;
+      $('generate').disabled = $('regenerate').disabled = Boolean(chars.maxCharacters && chars.length > chars.maxCharacters);
       $('phrase-length-estimate').textContent = '';
       recommendedLength(chars);
       const alphabetSize = passwordAlphabetSize(chars);
@@ -239,13 +246,22 @@ function generate() {
 
 for (const control of [pairs, separator, digit, symbol, mode, passwordLength,
   $('charset-lower'), $('charset-upper'), $('charset-numbers'), $('charset-special'),
-  $('exclude-ambiguous'), $('require-each')]) {
+  $('exclude-ambiguous'), $('require-each'), $('password-maximum'), $('enforce-password-maximum')]) {
   control.addEventListener('input', () => {
     clearSecret();
     explainEntropy();
     status('Settings changed. Generate a new passphrase to apply them.');
   });
 }
+$('password-maximum').addEventListener('change', () => {
+  if ($('enforce-password-maximum').checked) clearSecret();
+  explainEntropy();
+  status('Password maximum changed. Review the selected length and regenerate if needed.');
+});
+$('enforce-password-maximum').addEventListener('change', () => {
+  clearSecret(); explainEntropy();
+  status($('enforce-password-maximum').checked ? 'Strict password maximum enabled. Configurations above the selected cap are blocked.' : 'Password maximum is advisory only.');
+});
 $('entropy-target').addEventListener('change', () => {
   // Planning guidance never generates or clears an existing secret.
   if (activeMode() === 'password') recommendedLength();
